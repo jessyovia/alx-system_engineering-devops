@@ -1,37 +1,25 @@
 #!/usr/bin/env bash
-# This script displays information about subdomains of a given domain
+# This script audits subdomains of a given domain and displays their DNS records
 
-# Function to display usage information
-display_usage() {
-    echo "Usage: $0 domain [subdomain]"
-    echo "Example: $0 holberton.online web-02"
-    echo "When only the domain parameter is provided, it displays information for its default subdomains: www, lb-01, web-01, and web-02."
-    echo "When passing both domain and subdomain parameters, it displays information for the specified subdomain."
-}
-
-# Check if the correct number of arguments are provided
 if [ $# -lt 1 ] || [ $# -gt 2 ]; then
-    display_usage
+    echo "Usage: $0 domain [subdomain]"
     exit 1
 fi
 
-# Extract domain and subdomain from arguments
 domain=$1
-subdomain=${2:-"www lb-01 web-01 web-02"}
+subdomain=$2
 
-# Loop through subdomains
-for sub in $subdomain; do
-    # Use dig command to get DNS records for subdomain
-    records=$(dig +short $sub.$domain)
+# Function to display DNS records
+display_dns_records() {
+    local record_type=$(dig $1.$domain | awk '/ANSWER SECTION/ {getline; print $4}')
+    echo "The subdomain $1 is a $record_type record and points to $(dig $1.$domain +short)"
+}
 
-    # Check if records are found
-    if [ -n "$records" ]; then
-        # Determine record type (A or CNAME)
-        record_type=$(echo "$records" | awk '{ if (NR == 1 && $1 == ";;") { print "No records found" } else if ($1 == ";;") { print "CNAME" } else { print "A" }}')
-
-        # Display subdomain record information
-        echo "The subdomain $sub is a $record_type record and points to $records"
-    else
-        echo "No records found for $sub"
-    fi
-done
+if [ -z "$subdomain" ]; then
+    display_dns_records www
+    display_dns_records lb-01
+    display_dns_records web-01
+    display_dns_records web-02
+else
+    display_dns_records $subdomain
+fi
