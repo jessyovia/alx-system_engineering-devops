@@ -38,8 +38,8 @@ frontend clickviral-tech-frontend
 
 backend clickviral-tech-backend
     balance roundrobin
+    server 499650-web-01 34.232.66.7:80 check
     server 499650-web-02 54.157.157.194:80 check
-    server 499650-lb-01 54.237.94.237:80 check
 "
 
 # Update HAProxy configuration file
@@ -48,7 +48,7 @@ echo "$server_config" | sudo dd status=none of=/etc/haproxy/haproxy.cfg
 # Enable HAProxy to be started by init script
 echo "ENABLED=1" | sudo dd status=none of=/etc/default/haproxy
 
-echo "Configured: Round-robin between 499650-web-02 & 499650-lb-01"
+echo "Configured: Round-robin between 499650-web-01 & 499650-web-02"
 
 # Start or restart HAProxy service
 if [ "$(pgrep -c haproxy)" -le 0 ]; then
