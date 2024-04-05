@@ -1,26 +1,37 @@
 #!/usr/bin/env bash
-# Function to get info about domains and subdomains
+# This script displays information about subdomains of a given domain
 
-get_domain_info() {
-    domain=$1
-    subdomain=$2
-
-    if [ -z "$subdomain" ]; then
-        subdomains=("www" "lb-01" "web-01" "web-02")
-    else
-        subdomains=("$subdomain")
-    fi
-
-    for sub in "${subdomains[@]}"; do
-        ipaddress=$(dig +short "$sub.$domain" | tr -d "\n")
-        record=$(dig "$sub.$domain" | grep -A1 'ANSWER SECTION:' | awk '{print $4}' | tr -d "\n")
-        echo "The subdomain $sub is a $record record and points to $ipaddress"
-    done
+# Function to display usage information
+display_usage() {
+    echo "Usage: $0 domain [subdomain]"
+    echo "Example: $0 holberton.online web-02"
+    echo "When only the domain parameter is provided, it displays information for its default subdomains: www, lb-01, web-01, and web-02."
+    echo "When passing both domain and subdomain parameters, it displays information for the specified subdomain."
 }
 
-# Check for required arguments
-if [ $# -eq 1 ]; then
-    get_domain_info "$1"
-elif [ $# -eq 2 ]; then
-    get_domain_info "$1" "$2"
+# Check if the correct number of arguments are provided
+if [ $# -lt 1 ] || [ $# -gt 2 ]; then
+    display_usage
+    exit 1
 fi
+
+# Extract domain and subdomain from arguments
+domain=$1
+subdomain=${2:-"www lb-01 web-01 web-02"}
+
+# Loop through subdomains
+for sub in $subdomain; do
+    # Use dig command to get DNS records for subdomain
+    records=$(dig +short $sub.$domain)
+
+    # Check if records are found
+    if [ -n "$records" ]; then
+        # Determine record type (A or CNAME)
+        record_type=$(echo "$records" | awk '{ if (NR == 1 && $1 == ";;") { print "No records found" } else if ($1 == ";;") { print "CNAME" } else { print "A" }}')
+
+        # Display subdomain record information
+        echo "The subdomain $sub is a $record_type record and points to $records"
+    else
+        echo "No records found for $sub"
+    fi
+done
