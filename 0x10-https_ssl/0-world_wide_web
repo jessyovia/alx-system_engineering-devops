@@ -1,20 +1,25 @@
 #!/usr/bin/env bash
-# This script audits subdomains of a given domain
+# This script audits subdomains of a given domain and displays their DNS records
 
-if [[ $# -lt 1 || $# -gt 2 ]]; then
+if [ $# -lt 1 ] || [ $# -gt 2 ]; then
     echo "Usage: $0 domain [subdomain]"
     exit 1
 fi
 
 domain=$1
-subdomains=("www" "lb-01" "web-01" "web-02")
+subdomain=$2
 
-if [[ $# -eq 2 ]]; then
-    subdomains=($2)
+# Function to display DNS records
+display_dns_records() {
+    local record_type=$(dig $1.$domain | awk '/ANSWER SECTION/ {getline; print $4}')
+    echo "The subdomain $1 is a $record_type record and points to $(dig $1.$domain +short)"
+}
+
+if [ -z "$subdomain" ]; then
+    display_dns_records www
+    display_dns_records lb-01
+    display_dns_records web-01
+    display_dns_records web-02
+else
+    display_dns_records $subdomain
 fi
-
-for subdomain in "${subdomains[@]}"; do
-    record=$(dig +short $subdomain.$domain)
-    record_type=$(dig +short $subdomain.$domain | awk '{ print $4 }')
-    echo "The subdomain $subdomain is a $record_type record and points to $record"
-done
