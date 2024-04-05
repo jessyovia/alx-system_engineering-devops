@@ -1,25 +1,37 @@
 #!/usr/bin/env bash
-# This script audits subdomains of a given domain and displays their DNS records
 
-if [ $# -lt 1 ] || [ $# -gt 2 ]; then
-    echo "Usage: $0 domain [subdomain]"
-    exit 1
-fi
+# Function to retrieve information about domains and subdomains
+get_domain_info() {
+    domain=$1
+    subdomain=$2
 
-domain=$1
-subdomain=$2
+    # Check if subdomain is provided, otherwise use default subdomains
+    if [ -z "$subdomain" ]; then
+        subdomains=("www" "lb-01" "web-01" "web-02")
+    else
+        subdomains=("$subdomain")
+    fi
 
-# Function to display DNS records
-display_dns_records() {
-    local record_type=$(dig $1.$domain | awk '/ANSWER SECTION/ {getline; print $4}')
-    echo "The subdomain $1 is a $record_type record and points to $(dig $1.$domain +short)"
+    # Loop through subdomains to fetch information
+    for sub in "${subdomains[@]}"; do
+        # Retrieve IP address and record type using dig command
+        ipaddress=$(dig +short "$sub.$domain" 2>/dev/null | tr -d "\n")
+        record=$(dig "$sub.$domain" 2>/dev/null | grep -A1 'ANSWER SECTION:' | awk '{print $4}' | tr -d "\n")
+        
+        # Check if dig command returned valid results
+        if [ -n "$ipaddress" ] && [ -n "$record" ]; then
+            echo "The subdomain $sub is a $record record and points to $ipaddress"
+        else
+            echo "Failed to retrieve information for subdomain $sub.$domain"
+        fi
+    done
 }
 
-if [ -z "$subdomain" ]; then
-    display_dns_records www
-    display_dns_records lb-01
-    display_dns_records web-01
-    display_dns_records web-02
+# Check for required arguments
+if [ $# -eq 1 ]; then
+    get_domain_info "$1"
+elif [ $# -eq 2 ]; then
+    get_domain_info "$1" "$2"
 else
-    display_dns_records $subdomain
+    echo "Usage: $0 <domain> [subdomain]"
 fi
