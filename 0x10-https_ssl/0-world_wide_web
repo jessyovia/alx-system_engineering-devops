@@ -1,37 +1,20 @@
 #!/usr/bin/env bash
+# This script audits subdomains of a given domain
 
-# Function to retrieve information about domains and subdomains
-get_domain_info() {
-    domain=$1
-    subdomain=$2
-
-    # Check if subdomain is provided, otherwise use default subdomains
-    if [ -z "$subdomain" ]; then
-        subdomains=("www" "lb-01" "web-01" "web-02")
-    else
-        subdomains=("$subdomain")
-    fi
-
-    # Loop through subdomains to fetch information
-    for sub in "${subdomains[@]}"; do
-        # Retrieve IP address and record type using dig command
-        ipaddress=$(dig +short "$sub.$domain" 2>/dev/null | tr -d "\n")
-        record=$(dig "$sub.$domain" 2>/dev/null | grep -A1 'ANSWER SECTION:' | awk '{print $4}' | tr -d "\n")
-        
-        # Check if dig command returned valid results
-        if [ -n "$ipaddress" ] && [ -n "$record" ]; then
-            echo "The subdomain $sub is a $record record and points to $ipaddress"
-        else
-            echo "Failed to retrieve information for subdomain $sub.$domain"
-        fi
-    done
-}
-
-# Check for required arguments
-if [ $# -eq 1 ]; then
-    get_domain_info "$1"
-elif [ $# -eq 2 ]; then
-    get_domain_info "$1" "$2"
-else
-    echo "Usage: $0 <domain> [subdomain]"
+if [[ $# -lt 1 || $# -gt 2 ]]; then
+    echo "Usage: $0 domain [subdomain]"
+    exit 1
 fi
+
+domain=$1
+subdomains=("www" "lb-01" "web-01" "web-02")
+
+if [[ $# -eq 2 ]]; then
+    subdomains=($2)
+fi
+
+for subdomain in "${subdomains[@]}"; do
+    record=$(dig +short $subdomain.$domain)
+    record_type=$(dig +short $subdomain.$domain | awk '{ print $4 }')
+    echo "The subdomain $subdomain is a $record_type record and points to $record"
+done
