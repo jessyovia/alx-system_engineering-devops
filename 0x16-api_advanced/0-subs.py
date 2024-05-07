@@ -1,4 +1,3 @@
-
 #!/usr/bin/python3
 """Function to query Reddit API"""
 
