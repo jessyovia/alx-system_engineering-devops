@@ -1,30 +1,12 @@
-# Ensure Nginx is installed
-package { 'nginx':
-  ensure => installed,
+# Fix problem of high amount of requests
+
+exec {'replace':
+  provider => shell,
+  command  => 'sudo sed -i "s/ULIMIT=\"-n 15\"/ULIMIT=\"-n 4096\"/" /etc/default/nginx',
+  before   => Exec['restart'],
 }
 
-# Ensure Nginx service is running
-service { 'nginx':
-  ensure => running,
-}
-
-# Ensure Nginx configuration file is present
-file { '/etc/nginx/sites-available/default':
-  ensure  => file,
-  content => "
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server ipv6only=on;
-
-    root /usr/share/nginx/html;
-    index index.html index.htm;
-
-    server_name localhost;
-
-    location / {
-        try_files $uri $uri/ =404;
-    }
-}
-  ",
-  notify => Service['nginx'],
+exec {'restart':
+  provider => shell,
+  command  => 'sudo service nginx restart',
 }
